@@ -1,1 +1,56 @@
 @import "tailwindcss";
+
+:root {
+    /* Backgrounds */
+    --bg-main: #f1f5f9;        /* light slate */
+    --bg-card: #ffffff;
+
+    /* Primary (Blue) */
+    --primary-from: #0f3d68;
+    --primary-to: #1e6fd9;
+
+    /* Accent (Teal) */
+    --accent: #0ea5a4;
+    --accent-soft: #ccfbf1;
+
+    /* Neutral */
+    --neutral: #94a3b8;
+
+    /* Text */
+    --text-dark: #0f172a;
+    --text-light: #ffffff;
+}
+
+/* Background helpers */
+.bg-main {
+    background-color: var(--bg-main);
+}
+
+.bg-card {
+    background-color: var(--bg-card);
+}
+
+.bg-primary {
+    background: linear-gradient(
+        to right,
+        var(--primary-from),
+        var(--primary-to)
+    );
+}
+
+.bg-accent {
+    background-color: var(--accent);
+}
+
+.bg-accent-soft {
+    background-color: var(--accent-soft);
+}
+
+/* Text helpers */
+.text-primary {
+    color: var(--primary-to);
+}
+
+.text-dark {
+    color: var(--text-dark);
+}

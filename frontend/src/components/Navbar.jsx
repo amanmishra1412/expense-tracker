@@ -1,17 +1,37 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
+import React from "react";
+import { Link, NavLink } from "react-router-dom";
+import Button from "./Button";
 
 const Navbar = () => {
-  return (
-    <header className='px-4 py-3 flex justify-center items-center'>
-      <h2 className='text-2xl font-semibold mr-10'>Expense Tracker</h2>
-      <nav className='flex items-center gap-3'>
-        <NavLink to='/dashboard'>Home</NavLink>
-        <NavLink to='/income'>Income</NavLink>
-        <NavLink to='/expense'>Expense</NavLink>
-      </nav>
-    </header>
-  )
-}
+    const navLink = ["dashboard", "income", "expense"];
+    return (
+        <header className="bg-primary text-white px-6 py-4 flex justify-between items-center shadow-md">
+            <Link to="/" className="text-2xl font-bold tracking-wide">
+                Expense Tracker
+            </Link>
 
-export default Navbar
+            <nav className="flex items-center gap-6">
+                {navLink.map((path) => (
+                    <NavLink
+                        key={path}
+                        to={`/${path}`}
+                        className={({ isActive }) =>
+                            `font-medium transition capitalize ${
+                                isActive
+                                    ? "text-teal-200 border-b-2 border-teal-300"
+                                    : "hover:text-teal-100"
+                            }`
+                        }
+                    >
+                        {path}
+                    </NavLink>
+                ))}
+            </nav>
+            <div>
+                <Button name="Logout" active={true} />
+            </div>
+        </header>
+    );
+};
+
+export default Navbar;
