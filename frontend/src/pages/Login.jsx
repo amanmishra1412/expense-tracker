@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import axios from "axios";
+import Swal from "sweetalert2";
 import Button from "../components/Button";
 
 const Login = () => {
@@ -17,15 +19,30 @@ const Login = () => {
         });
     };
 
-    const handleForm = (e) => {
-        e.preventDefault(e);
+    const handleForm = async (e) => {
+        e.preventDefault();
         try {
             if (activeTab === "login") {
                 const payLoad = {
                     email: formData.email,
                     password: formData.password,
-                };
-                console.log(payLoad);
+                };  
+                let response = await axios.post(
+                    "http://localhost:3000/Auth/login",
+                    payLoad
+                );
+                console.log(response);
+                if (response.status === 200) {
+                    Swal.fire({
+                        title: response.data.message,
+                        icon: "success",
+                    }).then(() => {
+                        localStorage.setItem("token", response.data.token);
+                    });
+                } else {
+                    console.log(response);
+                }
+
                 setFormData({
                     username: "",
                     email: "",
@@ -33,7 +50,16 @@ const Login = () => {
                     confirmPassword: "",
                 });
             } else {
-                console.log(formData);
+                // console.log(formData);
+                let response = await axios.post(
+                    "http://localhost:3000/Auth/signup",
+                    {
+                        username: formData.username,
+                        email: formData.email,
+                        password: formData.password,
+                    }
+                );
+                console.log(response);
                 setFormData({
                     username: "",
                     email: "",
@@ -42,7 +68,7 @@ const Login = () => {
                 });
             }
         } catch (err) {
-            console.log(err);
+            console.log(err.response.data.message);
         }
     };
 
