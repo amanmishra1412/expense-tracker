@@ -26,12 +26,12 @@ const Login = () => {
                 const payLoad = {
                     email: formData.email,
                     password: formData.password,
-                };  
+                };
                 let response = await axios.post(
                     "http://localhost:3000/Auth/login",
-                    payLoad
+                    payLoad 
                 );
-                console.log(response);
+                // console.log(response);
                 if (response.status === 200) {
                     Swal.fire({
                         title: response.data.message,
