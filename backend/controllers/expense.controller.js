@@ -10,7 +10,7 @@ exports.addExpense = async (req, res) => {
             category,
             user: req.user.id,
         });
-        res.status(201).json(expense);
+        res.status(201).json({ message: "Success" });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -24,9 +24,8 @@ exports.getExpense = async (req, res) => {
             createdAt: -1,
         });
 
-        res.json(expense);
+        res.status(200).json(expense);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
-

@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import Button from "./Button";
+import { AuthData } from "../context/AuthContext";
 
 const Navbar = () => {
-    const navLink = ["dashboard", "income", "expense"];
+    const navLink = ["dashboard", "expense"];
+    const { logout } = useContext(AuthData);
+
     let navigate = useNavigate();
+
     return (
         <header className="bg-primary text-white px-6 py-4 flex justify-between items-center shadow-md">
             <Link to="/" className="text-2xl font-bold tracking-wide">
@@ -32,10 +36,10 @@ const Navbar = () => {
                 <Button
                     name="Logout"
                     onclick={() => {
-                        localStorage.setItem("token", "");
-                        navigate("/");
+                        logout();
+                        navigate("/", { replace: true });
                     }}
-                    active={true}
+                    active
                 />
             </div>
         </header>

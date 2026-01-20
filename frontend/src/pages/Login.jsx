@@ -1,11 +1,14 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useContext, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Button from "../components/Button";
+import { AuthData } from "../context/AuthContext";
+import { Navigate, useNavigate } from "react-router-dom";
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login } = useContext(AuthData);
+
     const [activeTab, setActiveTab] = useState("login");
     const [formData, setFormData] = useState({
         username: "",
@@ -23,38 +26,26 @@ const Login = () => {
 
     const handleForm = async (e) => {
         e.preventDefault();
+
         try {
             if (activeTab === "login") {
-                const payLoad = {
-                    email: formData.email,
-                    password: formData.password,
-                };
-                let response = await axios.post(
+                const response = await axios.post(
                     `${import.meta.env.VITE_URI}/Auth/login`,
-                    payLoad,
+                    {
+                        email: formData.email,
+                        password: formData.password,
+                    },
                 );
-                // console.log(response);
-                if (response.status === 200) {
-                    Swal.fire({
-                        title: response.data.message,
-                        icon: "success",
-                    }).then(() => {
-                        localStorage.setItem("token", response.data.token);
-                        navigate("/dashboard");
-                    });
-                } else {
-                    console.log(response);
-                }
 
-                setFormData({
-                    username: "",
-                    email: "",
-                    password: "",
-                    confirmPassword: "",
+                Swal.fire({
+                    title: response.data.message,
+                    icon: "success",
+                }).then(() => {
+                    login(response.data.token);
+                    navigate("/dashboard", { replace: true });
                 });
             } else {
-                // console.log(formData);
-                let response = await axios.post(
+                const response = await axios.post(
                     `${import.meta.env.VITE_URI}/Auth/signup`,
                     {
                         username: formData.username,
@@ -62,25 +53,24 @@ const Login = () => {
                         password: formData.password,
                     },
                 );
+
                 Swal.fire({
                     title: response.data.message,
                     icon: "success",
-                }).then(() => {
-                    setActiveTab("login");
-                });
-                setFormData({
-                    username: "",
-                    email: "",
-                    password: "",
-                    confirmPassword: "",
-                });
+                }).then(() => setActiveTab("login"));
             }
+
+            setFormData({
+                username: "",
+                email: "",
+                password: "",
+                confirmPassword: "",
+            });
         } catch (err) {
             Swal.fire({
-                title: err,
+                title: err.response?.data?.message || "Server Error",
                 icon: "error",
             });
-            console.log(err);
         }
     };
 

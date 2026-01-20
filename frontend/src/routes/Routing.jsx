@@ -1,21 +1,35 @@
-import React from "react";
 import { Route, Routes } from "react-router-dom";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
-import AddIncome from "../pages/Dashboard/AddIncome";
+import AddExpense from "../pages/Dashboard/AddExpense";
+import Expense from "../pages/Dashboard/Expense";
 import DashboardLayout from "../layout/DashboardLayout";
+import ProtectedRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
+import NotFound from "../pages/NotFound";
 
 const Routing = () => {
     return (
-        <div>
-            <Routes>
-                <Route path="/" element={<Login />} />
+        <Routes>
+            <Route
+                path="/"
+                element={
+                    <PublicRoute>
+                        <Login />
+                    </PublicRoute>
+                }
+            />
+
+            <Route element={<ProtectedRoute />}>
                 <Route element={<DashboardLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/income" element={<AddIncome />} />
+                    <Route path="/expense" element={<Expense />} />
+                    <Route path="/addexpense" element={<AddExpense />} />
                 </Route>
-            </Routes>
-        </div>
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+        </Routes>
     );
 };
 
