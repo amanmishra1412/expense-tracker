@@ -1,4 +1,4 @@
-const Expense = require("../model/expense.model");
+const Expense = require("../models/expense.model");
 
 exports.deleteExpense = async (req, res) => {
   try {
