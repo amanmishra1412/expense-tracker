@@ -77,10 +77,10 @@ const Login = () => {
             }
         } catch (err) {
             Swal.fire({
-                title: err.data,
+                title: err,
                 icon: "error",
             });
-            // console.log(err.response.data.message);
+            console.log(err);
         }
     };
 
