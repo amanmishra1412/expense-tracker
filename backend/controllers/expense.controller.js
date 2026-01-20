@@ -1,4 +1,4 @@
-const Expense = require("../model/expense.model");
+const Expense = require("../models/expense.model");
 
 exports.addExpense = async (req, res) => {
   try {
@@ -16,7 +16,7 @@ exports.addExpense = async (req, res) => {
   }
 };
 
-exports.getExpense = async () => {
+exports.getExpense = async (req,res) => {
   try{
      const expense = await Expense.find({
     user: req.user.id,
