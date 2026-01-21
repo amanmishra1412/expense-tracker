@@ -114,7 +114,7 @@ const Expense = () => {
                                 {filteredExpenses.map((item, idx) => (
                                     <tr key={idx} className="hover:bg-gray-50">
                                         {/* Title */}
-                                        <td className="py-3 px-2 text-dark font-medium">
+                                        <td className="py-3 px-2 capitalize text-dark font-medium">
                                             {item.title}
                                         </td>
 

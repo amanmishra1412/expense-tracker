@@ -90,7 +90,7 @@ const Dashboard = () => {
                                     className="flex justify-between py-3 text-sm"
                                 >
                                     <div>
-                                        <p className="text-dark font-medium">
+                                        <p className="text-dark capitalize font-medium">
                                             {e.title}
                                         </p>
                                         <p className="text-xs text-gray-400">
