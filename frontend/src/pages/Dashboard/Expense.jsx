@@ -8,15 +8,38 @@ const Expense = () => {
     const { expenses, setExpenses } = useContext(ExpenseData);
     const { user } = useContext(AuthData);
 
+    const formatDate = (date) => new Date(date).toLocaleDateString("en-GB");
+    const getMonthRange = () => {
+        const now = new Date();
+
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const format = (date) =>
+            date.getFullYear() +
+            "-" +
+            String(date.getMonth() + 1).padStart(2, "0") +
+            "-" +
+            String(date.getDate()).padStart(2, "0");
+
+        return {
+            start: format(start),
+            end: format(end),
+        };
+    };
+
+    const { start, end } = getMonthRange();
+
+    const [fromDate, setFromDate] = useState(start);
+    const [toDate, setToDate] = useState(end);
+
     const [categoryFilter, setCategoryFilter] = useState("");
-    const [fromDate, setFromDate] = useState("");
-    const [toDate, setToDate] = useState("");
 
     const filteredExpenses = expenses.filter((item) => {
         const matchCategory =
             !categoryFilter || item.category === categoryFilter;
 
-        const itemDate = new Date(item.date);
+        const itemDate = new Date(item.createdAt);
 
         const matchFrom = !fromDate || itemDate >= new Date(fromDate);
 
@@ -24,6 +47,12 @@ const Expense = () => {
 
         return matchCategory && matchFrom && matchTo;
     });
+
+    const totalAmount = filteredExpenses.reduce(
+        (sum, item) => sum + Number(item.amount),
+        0,
+    );
+
     // console.log(filteredExpenses);
 
     const deleteExpense = async (id) => {
@@ -43,11 +72,9 @@ const Expense = () => {
         }
     };
 
-    const formatDate = (date) => new Date(date).toLocaleDateString("en-GB");
     return (
         <div className="bg-main min-h-screen p-3 sm:p-5">
             <div className="max-w-6xl mx-auto bg-card rounded-xl shadow-md p-4 sm:p-5 flex flex-col">
-                {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                     <h2 className="text-xl sm:text-2xl font-semibold text-dark">
                         Expenses
@@ -68,12 +95,14 @@ const Expense = () => {
 
                         <input
                             type="date"
+                            value={fromDate}
                             className="w-full sm:w-auto rounded-lg border px-3 py-2 text-sm"
                             onChange={(e) => setFromDate(e.target.value)}
                         />
 
                         <input
                             type="date"
+                            value={toDate}
                             className="w-full sm:w-auto rounded-lg border px-3 py-2 text-sm"
                             onChange={(e) => setToDate(e.target.value)}
                         />
@@ -129,6 +158,14 @@ const Expense = () => {
                             </div>
                         </div>
                     ))}
+                    {filteredExpenses.length > 0 && (
+                        <div className="bg-gray-100 rounded-lg p-4 font-semibold flex justify-between">
+                            <span>Total</span>
+                            <span className="text-red-600">
+                                ₹ {totalAmount}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* ================= DESKTOP TABLE ================= */}
@@ -193,6 +230,24 @@ const Expense = () => {
                                 </tr>
                             )}
                         </tbody>
+
+                        {/* ✅ TOTAL ROW */}
+                        {filteredExpenses.length > 0 && (
+                            <tfoot>
+                                <tr className="bg-gray-50 font-semibold border-t">
+                                    <td
+                                        colSpan="3"
+                                        className="py-3 px-2 text-right text-dark"
+                                    >
+                                        Total
+                                    </td>
+                                    <td className="py-3 px-2 text-red-600">
+                                        ₹ {totalAmount}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        )}
                     </table>
                 </div>
             </div>
