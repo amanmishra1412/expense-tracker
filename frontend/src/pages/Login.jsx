@@ -8,6 +8,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 const Login = () => {
     const navigate = useNavigate();
     const { login } = useContext(AuthData);
+    const [loading, setLoading] = useState(false);
 
     const [activeTab, setActiveTab] = useState("login");
     const [formData, setFormData] = useState({
@@ -26,7 +27,7 @@ const Login = () => {
 
     const handleForm = async (e) => {
         e.preventDefault();
-
+        setLoading(true);
         try {
             if (activeTab === "login") {
                 const response = await axios.post(
@@ -71,6 +72,8 @@ const Login = () => {
                 title: err.response?.data?.message || "Server Error",
                 icon: "error",
             });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -157,7 +160,16 @@ const Login = () => {
 
                     <Button
                         active
-                        name={activeTab === "login" ? "Login" : "Signup"}
+                        name={
+                            loading
+                                ? activeTab === "login"
+                                    ? "Logging in..."
+                                    : "Signing up..."
+                                : activeTab === "login"
+                                  ? "Login"
+                                  : "Signup"
+                        }
+                        onclick={loading ? null : undefined}
                     />
                 </form>
             </div>
