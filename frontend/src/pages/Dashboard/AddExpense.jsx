@@ -5,11 +5,13 @@ import { useNavigate } from "react-router-dom";
 
 const AddExpense = () => {
     const navigate = useNavigate();
+    const today = new Date().toISOString().split("T")[0];
 
     const [formData, setFormData] = useState({
         title: "",
         amount: "",
         category: "",
+        date: today,
     });
 
     const handleChange = (e) => {
@@ -36,8 +38,6 @@ const AddExpense = () => {
                 Swal.fire({
                     title: res.data.message,
                     icon: "success",
-                }).then(() => {
-                    navigate("/expense");
                 });
             } else {
                 console.log(res);
@@ -68,6 +68,20 @@ const AddExpense = () => {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Date */}
+                    <div>
+                        <label className="text-sm font-medium text-dark">
+                            Date
+                        </label>
+                        <input
+                            type="date"
+                            name="date"
+                            value={formData.date}
+                            onChange={handleChange}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--accent)"
+                        />
+                    </div>
+
                     {/* Title */}
                     <div>
                         <label className="text-sm font-medium text-dark">

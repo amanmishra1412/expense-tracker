@@ -1,143 +1,131 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Link } from "react-router-dom";
+import { ExpenseData } from "../../context/ExpenseContext";
 
 const Dashboard = () => {
-  return (
-    <div className="min-h-screen bg-main p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    const { expenses } = useContext(ExpenseData);
 
-        {/* Page Title */}
-        <h1 className="text-2xl font-semibold text-dark">
-          Expense Dashboard
-        </h1>
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        {/* ================= SUMMARY CARDS ================= */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    // ================== CALCULATIONS ==================
 
-          {/* Today Expense */}
-          <div className="bg-card rounded-xl shadow p-5">
-            <p className="text-sm text-gray-500">Today’s Expense</p>
-            <h2 className="text-2xl font-bold text-red-600 mt-1">
-              ₹ 850
-            </h2>
-            <p className="text-xs text-gray-400 mt-1">
-              Updated today
-            </p>
-          </div>
+    // Today Expense
+    const todayExpense = expenses
+        .filter((e) => new Date(e.createdAt) >= today)
+        .reduce((sum, e) => sum + e.amount, 0);
 
-          {/* Monthly Expense */}
-          <div className="bg-card rounded-xl shadow p-5">
-            <p className="text-sm text-gray-500">This Month</p>
-            <h2 className="text-2xl font-bold text-red-600 mt-1">
-              ₹ 18,450
-            </h2>
-            <p className="text-xs text-gray-400 mt-1">
-              January 2026
-            </p>
-          </div>
+    // This Month Expense
+    const monthExpense = expenses
+        .filter((e) => {
+            const d = new Date(e.createdAt);
+            return (
+                d.getMonth() === today.getMonth() &&
+                d.getFullYear() === today.getFullYear()
+            );
+        })
+        .reduce((sum, e) => sum + e.amount, 0);
 
-          {/* Top Category */}
-          <div className="bg-card rounded-xl shadow p-5">
-            <p className="text-sm text-gray-500">Top Category</p>
-            <h2 className="text-xl font-semibold text-dark mt-1">
-              Food
-            </h2>
-            <p className="text-xs text-gray-400 mt-1">
-              Highest spending
-            </p>
-          </div>
+    // Category totals
+    const categoryTotals = {};
+    expenses.forEach((e) => {
+        categoryTotals[e.category] =
+            (categoryTotals[e.category] || 0) + e.amount;
+    });
 
-          {/* Total Entries */}
-          <div className="bg-card rounded-xl shadow p-5">
-            <p className="text-sm text-gray-500">Total Entries</p>
-            <h2 className="text-2xl font-bold text-dark mt-1">
-              124
-            </h2>
-            <p className="text-xs text-gray-400 mt-1">
-              Till now
-            </p>
-          </div>
-        </div>
+    // Top Category
+    const topCategory =
+        Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+        "—";
 
-        {/* ================= CHART SECTION ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    // Recent Expenses (last 5)
+    const recentExpenses = [...expenses]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5);
 
-          {/* Category Chart */}
-          <div className="bg-card rounded-xl shadow p-5">
-            <h3 className="text-lg font-semibold text-dark mb-3">
-              Category Breakdown
-            </h3>
-            <div className="h-56 flex items-center justify-center border border-dashed rounded-lg text-gray-400">
-              Pie Chart Here
-            </div>
-          </div>
+    // ================== UI ==================
+    return (
+        <div className="min-h-screen bg-main p-6">
+            <div className="max-w-6xl mx-auto space-y-6">
+                <h1 className="text-2xl font-semibold text-dark">
+                    Expense Dashboard
+                </h1>
 
-          {/* Weekly Trend */}
-          <div className="lg:col-span-2 bg-card rounded-xl shadow p-5">
-            <h3 className="text-lg font-semibold text-dark mb-3">
-              Last 7 Days Expense
-            </h3>
-            <div className="h-56 flex items-center justify-center border border-dashed rounded-lg text-gray-400">
-              Bar Chart Here
-            </div>
-          </div>
-        </div>
-
-        {/* ================= RECENT EXPENSES ================= */}
-        <div className="bg-card rounded-xl shadow p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-dark">
-              Recent Expenses
-            </h3>
-
-            <Link
-              to="/expenses"
-              className="text-sm text-(--accent) hover:underline"
-            >
-              View All
-            </Link>
-          </div>
-
-          <div className="divide-y">
-            {[
-              { title: "Grocery", amount: 1200, category: "Food" },
-              { title: "Fuel", amount: 500, category: "Travel" },
-              { title: "Internet Bill", amount: 999, category: "Bills" },
-            ].map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between py-3 text-sm"
-              >
-                <div>
-                  <p className="text-dark font-medium">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {item.category}
-                  </p>
+                {/* SUMMARY CARDS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card title="Today’s Expense" value={`₹ ${todayExpense}`} />
+                    <Card
+                        title="This Month"
+                        value={`₹ ${monthExpense}`}
+                        subtitle={today.toLocaleString("default", {
+                            month: "long",
+                            year: "numeric",
+                        })}
+                    />
+                    <Card title="Top Category" value={topCategory} />
+                    <Card title="Total Entries" value={expenses.length} />
                 </div>
 
-                <div className="text-red-600 font-semibold">
-                  ₹ {item.amount}
+                {/* RECENT EXPENSES */}
+                <div className="bg-card rounded-xl shadow p-5">
+                    <div className="flex justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-dark">
+                            Recent Expenses
+                        </h3>
+                        <Link
+                            to="/expense"
+                            className="text-sm text-(--accent)"
+                        >
+                            View All
+                        </Link>
+                    </div>
+
+                    {recentExpenses.length === 0 ? (
+                        <p className="text-gray-400 text-sm">No expenses yet</p>
+                    ) : (
+                        <div className="divide-y">
+                            {recentExpenses.map((e) => (
+                                <div
+                                    key={e._id}
+                                    className="flex justify-between py-3 text-sm"
+                                >
+                                    <div>
+                                        <p className="text-dark font-medium">
+                                            {e.title}
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            {e.category}
+                                        </p>
+                                    </div>
+                                    <div className="text-red-600 font-semibold">
+                                        ₹ {e.amount}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* ================= QUICK ACTION ================= */}
-        <div className="flex justify-end">
-          <Link
-            to="/addexpense"
-            className="bg-primary text-white px-6 py-3 rounded-xl text-sm hover:opacity-90"
-          >
-            + Add Expense
-          </Link>
+                {/* ACTION */}
+                <div className="flex justify-end">
+                    <Link
+                        to="/addexpense"
+                        className="bg-primary text-white px-6 py-3 rounded-xl"
+                    >
+                        + Add Expense
+                    </Link>
+                </div>
+            </div>
         </div>
-
-      </div>
-    </div>
-  );
+    );
 };
+
+const Card = ({ title, value, subtitle }) => (
+    <div className="bg-card rounded-xl shadow p-5">
+        <p className="text-sm text-gray-500">{title}</p>
+        <h2 className="text-2xl font-bold mt-1 text-dark">{value}</h2>
+        {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    </div>
+);
 
 export default Dashboard;

@@ -1,9 +1,12 @@
 import React, { useContext, useState } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 import { ExpenseData } from "../../context/ExpenseContext";
+import { AuthData } from "../../context/AuthContext";
 
 const Expense = () => {
-    const { expenses } = useContext(ExpenseData);
+    const { expenses, setExpenses } = useContext(ExpenseData);
+    const { user } = useContext(AuthData);
 
     const [categoryFilter, setCategoryFilter] = useState("");
     const [fromDate, setFromDate] = useState("");
@@ -22,6 +25,23 @@ const Expense = () => {
         return matchCategory && matchFrom && matchTo;
     });
     // console.log(filteredExpenses);
+
+    const deleteExpense = async (id) => {
+        try {
+            await axios.delete(
+                `${import.meta.env.VITE_URI}/expense/delete/${id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${user.token}`,
+                    },
+                },
+            );
+
+            setExpenses((prev) => prev.filter((item) => item._id !== id));
+        } catch (err) {
+            console.log(err);
+        }
+    };
 
     return (
         <div className="bg-main">
@@ -107,7 +127,9 @@ const Expense = () => {
 
                                         {/* Date */}
                                         <td className="py-3 px-2 text-gray-500">
-                                            {item.date}
+                                            {new Date(
+                                                item.createdAt,
+                                            ).toLocaleDateString("en-GB")}{" "}
                                         </td>
 
                                         {/* Amount */}
@@ -116,11 +138,16 @@ const Expense = () => {
                                         </td>
 
                                         {/* Actions */}
-                                        {/* <td className="py-3 px-2 text-right">
-                                            <button className="px-3 py-1 rounded-md border border-red-500 text-red-500 text-xs hover:bg-red-50">
+                                        <td className="py-3 px-2 text-right">
+                                            <button
+                                                onClick={() =>
+                                                    deleteExpense(item._id)
+                                                }
+                                                className="px-3 py-1 rounded-md border border-red-500 text-red-500 text-xs hover:bg-red-50"
+                                            >
                                                 Delete
                                             </button>
-                                        </td> */}
+                                        </td>
                                     </tr>
                                 ))}
 

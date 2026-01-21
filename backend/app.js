@@ -8,7 +8,6 @@ app.use(cors());
 const authRoute = require("./routes/auth.routes");
 const pdfRoutes = require("./routes/pdf.routes");
 const expenseRoutes = require("./routes/expense.routes");
-const deleteExpense = require("./routes/delete.routes");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -17,7 +16,6 @@ connectDB();
 
 app.use("/Auth", authRoute);
 app.use("/expense", expenseRoutes);
-app.use("/delete",deleteExpense)
 app.use("/pdf", pdfRoutes);
 
 app.get("/", (req, res) => {
