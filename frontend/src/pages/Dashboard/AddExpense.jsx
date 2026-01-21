@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import { ExpenseData } from "../../context/ExpenseContext";
 
 const AddExpense = () => {
     const navigate = useNavigate();
     const today = new Date().toISOString().split("T")[0];
+    const { setExpenses } = useContext(ExpenseData);
 
     const [formData, setFormData] = useState({
         title: "",
@@ -38,6 +40,10 @@ const AddExpense = () => {
                 Swal.fire({
                     title: res.data.message,
                     icon: "success",
+                }).then(() => {
+                    setExpenses((prev) => [...prev, res.data.expense]);
+
+                    navigate(-1);
                 });
             } else {
                 console.log(res);

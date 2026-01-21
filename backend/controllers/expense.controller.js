@@ -11,7 +11,7 @@ exports.addExpense = async (req, res) => {
             user: req.user.id,
             createdAt: date ? new Date(date) : undefined,
         });
-        res.status(201).json({ message: "Success" });
+        res.status(201).json({ message: "Success", expense: expense });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
