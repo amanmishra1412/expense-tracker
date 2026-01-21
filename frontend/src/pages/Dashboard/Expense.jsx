@@ -43,20 +43,19 @@ const Expense = () => {
         }
     };
 
+    const formatDate = (date) => new Date(date).toLocaleDateString("en-GB");
     return (
-        <div className="bg-main">
-            <div className="max-w-5xl mx-auto bg-card rounded-xl shadow-md p-5 h-[85vh] flex flex-col">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                    {/* Left: Title */}
-                    <h2 className="text-2xl font-semibold text-dark">
+        <div className="bg-main min-h-screen p-3 sm:p-5">
+            <div className="max-w-6xl mx-auto bg-card rounded-xl shadow-md p-4 sm:p-5 flex flex-col">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-dark">
                         Expenses
                     </h2>
 
-                    {/* Right: Filters + Button */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        {/* Category Filter */}
+                    <div className="flex flex-wrap gap-2">
                         <select
-                            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--accent) "
+                            className="w-full sm:w-auto rounded-lg border px-3 py-2 text-sm"
                             onChange={(e) => setCategoryFilter(e.target.value)}
                         >
                             <option value="">All Categories</option>
@@ -67,104 +66,134 @@ const Expense = () => {
                             <option value="Shopping">Shopping</option>
                         </select>
 
-                        {/* From Date */}
                         <input
                             type="date"
-                            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--accent)"
+                            className="w-full sm:w-auto rounded-lg border px-3 py-2 text-sm"
                             onChange={(e) => setFromDate(e.target.value)}
                         />
 
-                        {/* To Date */}
                         <input
                             type="date"
-                            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--accent) "
+                            className="w-full sm:w-auto rounded-lg border px-3 py-2 text-sm"
                             onChange={(e) => setToDate(e.target.value)}
                         />
 
-                        {/* Add Button */}
                         <Link
                             to="/addexpense"
-                            className="bg-primary text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap"
+                            className="w-full sm:w-auto bg-primary text-white px-4 py-2 rounded-lg text-sm text-center"
                         >
                             + Add Expense
                         </Link>
                     </div>
                 </div>
 
-                {/* Table Wrapper */}
-                <div className="mt-4 flex-1 overflow-hidden">
-                    {/* Table */}
-                    <div className="relative h-full overflow-y-auto">
-                        <table className="min-w-full text-sm">
-                            {/* Table Head */}
-                            <thead className="sticky top-0 bg-card z-10 border-b">
-                                <tr className="text-left text-gray-500 font-medium">
-                                    <th className="py-3 px-2">Title</th>
-                                    <th className="py-3 px-2">Category</th>
-                                    <th className="py-3 px-2">Date</th>
-                                    <th className="py-3 px-2">Amount</th>
-                                    <th className="py-3 px-2 text-right">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
+                {/* ================= MOBILE CARD VIEW ================= */}
+                <div className="sm:hidden space-y-3">
+                    {filteredExpenses.length === 0 && (
+                        <p className="text-center text-gray-400 py-6">
+                            No expenses found
+                        </p>
+                    )}
 
-                            {/* Table Body */}
-                            <tbody className="divide-y">
-                                {filteredExpenses.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50">
-                                        {/* Title */}
-                                        <td className="py-3 px-2 capitalize text-dark font-medium">
-                                            {item.title}
-                                        </td>
+                    {filteredExpenses.map((item) => (
+                        <div
+                            key={item._id}
+                            className="bg-white rounded-lg shadow-sm p-4 border"
+                        >
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="font-medium text-dark capitalize">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-xs text-gray-400">
+                                        {formatDate(item.createdAt)}
+                                    </p>
+                                </div>
 
-                                        {/* Category */}
-                                        <td className="py-3 px-2">
-                                            <span className="bg-accent-soft text-(--accent) px-3 py-1 rounded-full text-xs font-medium">
-                                                {item.category}
-                                            </span>
-                                        </td>
+                                <span className="text-red-600 font-semibold">
+                                    ₹ {item.amount}
+                                </span>
+                            </div>
 
-                                        {/* Date */}
-                                        <td className="py-3 px-2 text-gray-500">
-                                            {new Date(
-                                                item.createdAt,
-                                            ).toLocaleDateString("en-GB")}{" "}
-                                        </td>
+                            <div className="flex justify-between items-center mt-3">
+                                <span className="bg-accent-soft text-(--accent) px-3 py-1 rounded-full text-xs">
+                                    {item.category}
+                                </span>
 
-                                        {/* Amount */}
-                                        <td className="py-3 px-2 font-semibold text-red-600">
-                                            ₹ {item.amount}
-                                        </td>
+                                <button
+                                    onClick={() => deleteExpense(item._id)}
+                                    className="text-xs text-red-500 border border-red-500 px-3 py-1 rounded-md"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
 
-                                        {/* Actions */}
-                                        <td className="py-3 px-2 text-right">
-                                            <button
-                                                onClick={() =>
-                                                    deleteExpense(item._id)
-                                                }
-                                                className="px-3 py-1 rounded-md border border-red-500 text-red-500 text-xs hover:bg-red-50"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                {/* ================= DESKTOP TABLE ================= */}
+                <div className="hidden sm:block mt-4 overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                        <thead className="border-b text-gray-500">
+                            <tr>
+                                <th className="py-3 px-2 text-left">Title</th>
+                                <th className="py-3 px-2 text-left">
+                                    Category
+                                </th>
+                                <th className="py-3 px-2 text-left">Date</th>
+                                <th className="py-3 px-2 text-left">Amount</th>
+                                <th className="py-3 px-2 text-right">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
 
-                                {/* Empty State */}
-                                {filteredExpenses.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan="5"
-                                            className="py-10 text-center text-gray-400"
+                        <tbody className="divide-y">
+                            {filteredExpenses.map((item) => (
+                                <tr key={item._id} className="hover:bg-gray-50">
+                                    <td className="py-3 px-2 capitalize font-medium">
+                                        {item.title}
+                                    </td>
+
+                                    <td className="py-3 px-2">
+                                        <span className="bg-accent-soft text-(--accent) px-3 py-1 rounded-full text-xs">
+                                            {item.category}
+                                        </span>
+                                    </td>
+
+                                    <td className="py-3 px-2 text-gray-500">
+                                        {formatDate(item.createdAt)}
+                                    </td>
+
+                                    <td className="py-3 px-2 font-semibold text-red-600">
+                                        ₹ {item.amount}
+                                    </td>
+
+                                    <td className="py-3 px-2 text-right">
+                                        <button
+                                            onClick={() =>
+                                                deleteExpense(item._id)
+                                            }
+                                            className="px-3 py-1 border border-red-500 text-red-500 rounded-md text-xs"
                                         >
-                                            No expenses found
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+
+                            {filteredExpenses.length === 0 && (
+                                <tr>
+                                    <td
+                                        colSpan="5"
+                                        className="py-10 text-center text-gray-400"
+                                    >
+                                        No expenses found
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
