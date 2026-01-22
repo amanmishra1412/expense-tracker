@@ -1,9 +1,10 @@
 import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import Button from "./Button";
 
 const Navbar = () => {
     const navLink = ["dashboard", "income", "expense"];
+    let navigate = useNavigate();
     return (
         <header className="bg-primary text-white px-6 py-4 flex justify-between items-center shadow-md">
             <Link to="/" className="text-2xl font-bold tracking-wide">
@@ -28,7 +29,14 @@ const Navbar = () => {
                 ))}
             </nav>
             <div>
-                <Button name="Logout" active={true} />
+                <Button
+                    name="Logout"
+                    onclick={() => {
+                        localStorage.setItem("token", "");
+                        navigate("/");
+                    }}
+                    active={true}
+                />
             </div>
         </header>
     );

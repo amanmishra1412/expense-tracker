@@ -9,6 +9,7 @@ const authRoute = require("./routes/auth.routes");
 const pdfRoutes = require("./routes/pdf.routes");
 const expenseRoutes = require("./routes/expense.routes");
 const deleteExpense = require("./routes/delete.routes");
+const categoryRoutes  = require("./routes/category.routes")
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -18,6 +19,7 @@ connectDB();
 app.use("/Auth", authRoute);
 app.use("/expense", expenseRoutes);
 app.use("/delete",deleteExpense)
+app.use("/categories",categoryRoutes)
 app.use("/pdf", pdfRoutes);
 
 app.get("/", (req, res) => {

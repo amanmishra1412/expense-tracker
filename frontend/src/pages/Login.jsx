@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Button from "../components/Button";
 
 const Login = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("login");
     const [formData, setFormData] = useState({
         username: "",
@@ -26,18 +28,19 @@ const Login = () => {
                 const payLoad = {
                     email: formData.email,
                     password: formData.password,
-                };  
+                };
                 let response = await axios.post(
-                    "http://localhost:3000/Auth/login",
-                    payLoad
+                    `${import.meta.env.VITE_URI}/Auth/login`,
+                    payLoad,
                 );
-                console.log(response);
+                // console.log(response);
                 if (response.status === 200) {
                     Swal.fire({
                         title: response.data.message,
                         icon: "success",
                     }).then(() => {
                         localStorage.setItem("token", response.data.token);
+                        navigate("/dashboard");
                     });
                 } else {
                     console.log(response);
@@ -52,14 +55,19 @@ const Login = () => {
             } else {
                 // console.log(formData);
                 let response = await axios.post(
-                    "http://localhost:3000/Auth/signup",
+                    `${import.meta.env.VITE_URI}/Auth/signup`,
                     {
                         username: formData.username,
                         email: formData.email,
                         password: formData.password,
-                    }
+                    },
                 );
-                console.log(response);
+                Swal.fire({
+                    title: response.data.message,
+                    icon: "success",
+                }).then(() => {
+                    setActiveTab("login");
+                });
                 setFormData({
                     username: "",
                     email: "",
@@ -68,7 +76,11 @@ const Login = () => {
                 });
             }
         } catch (err) {
-            console.log(err.response.data.message);
+            Swal.fire({
+                title: err,
+                icon: "error",
+            });
+            console.log(err);
         }
     };
 
