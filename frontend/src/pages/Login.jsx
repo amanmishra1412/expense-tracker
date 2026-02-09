@@ -3,14 +3,15 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import Button from "../components/Button";
 import { AuthData } from "../context/AuthContext";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
     const navigate = useNavigate();
     const { login } = useContext(AuthData);
-    const [loading, setLoading] = useState(false);
 
+    const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("login");
+
     const [formData, setFormData] = useState({
         username: "",
         email: "",
@@ -27,6 +28,7 @@ const Login = () => {
 
     const handleForm = async (e) => {
         e.preventDefault();
+        if (loading) return;
         setLoading(true);
         try {
             if (activeTab === "login") {
@@ -46,6 +48,15 @@ const Login = () => {
                     navigate("/dashboard", { replace: true });
                 });
             } else {
+                if (formData.password !== formData.confirmPassword) {
+                    Swal.fire({
+                        title: "Passwords do not match",
+                        icon: "error",
+                    });
+                    setLoading(false);
+                    return;
+                }
+
                 const response = await axios.post(
                     `${import.meta.env.VITE_URI}/Auth/signup`,
                     {
@@ -89,19 +100,19 @@ const Login = () => {
                     <Button
                         name="Login"
                         active={activeTab === "login"}
-                        onclick={() => {
-                            setActiveTab("login");
-                        }}
+                        onclick={() => setActiveTab("login")}
+                        disabled={loading}
                     />
                     <Button
                         name="Signup"
                         active={activeTab === "signup"}
                         onclick={() => setActiveTab("signup")}
+                        disabled={loading}
                     />
                 </div>
 
                 {/* Form */}
-                <form className="space-y-3" onSubmit={(e) => handleForm(e)}>
+                <form className="space-y-3" onSubmit={handleForm}>
                     {activeTab === "login" ? (
                         <>
                             <input
@@ -110,6 +121,7 @@ const Login = () => {
                                 value={formData.email}
                                 onChange={handleChange}
                                 placeholder="Email Address"
+                                required
                                 className="w-full border-gray-300 outline-none px-3 py-2 border rounded-xl"
                             />
                             <input
@@ -118,6 +130,7 @@ const Login = () => {
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="Password"
+                                required
                                 className="w-full border-gray-300 outline-none px-3 py-2 border rounded-xl"
                             />
                         </>
@@ -129,6 +142,7 @@ const Login = () => {
                                 value={formData.username}
                                 onChange={handleChange}
                                 placeholder="Username"
+                                required
                                 className="w-full border-gray-300 outline-none px-3 py-2 border rounded-xl"
                             />
                             <input
@@ -137,6 +151,7 @@ const Login = () => {
                                 value={formData.email}
                                 onChange={handleChange}
                                 placeholder="Email Address"
+                                required
                                 className="w-full border-gray-300 outline-none px-3 py-2 border rounded-xl"
                             />
                             <input
@@ -145,6 +160,7 @@ const Login = () => {
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="Password"
+                                required
                                 className="w-full border-gray-300 outline-none px-3 py-2 border rounded-xl"
                             />
                             <input
@@ -153,6 +169,7 @@ const Login = () => {
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                                 placeholder="Confirm Password"
+                                required
                                 className="w-full border-gray-300 outline-none px-3 py-2 border rounded-xl"
                             />
                         </>
@@ -160,6 +177,7 @@ const Login = () => {
 
                     <Button
                         active
+                        disabled={loading}
                         name={
                             loading
                                 ? activeTab === "login"
@@ -169,7 +187,6 @@ const Login = () => {
                                   ? "Login"
                                   : "Signup"
                         }
-                        onclick={loading ? null : undefined}
                     />
                 </form>
             </div>
