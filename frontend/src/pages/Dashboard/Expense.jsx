@@ -8,6 +8,11 @@ const Expense = () => {
     const { expenses, setExpenses } = useContext(ExpenseData);
     const { user } = useContext(AuthData);
 
+    const normalizeDate = (date) => {
+        const d = new Date(date);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    };
+
     const formatDate = (date) => new Date(date).toLocaleDateString("en-GB");
     const getMonthRange = () => {
         const now = new Date();
@@ -33,17 +38,23 @@ const Expense = () => {
     const [fromDate, setFromDate] = useState(start);
     const [toDate, setToDate] = useState(end);
 
+    const toTimestamp = (date) => {
+        const d = new Date(date);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    };
+
     const [categoryFilter, setCategoryFilter] = useState("");
 
     const filteredExpenses = expenses.filter((item) => {
         const matchCategory =
             !categoryFilter || item.category === categoryFilter;
 
-        const itemDate = new Date(item.createdAt);
+        const itemDate = toTimestamp(item.createdAt);
+        const from = fromDate ? toTimestamp(fromDate) : null;
+        const to = toDate ? toTimestamp(toDate) : null;
 
-        const matchFrom = !fromDate || itemDate >= new Date(fromDate);
-
-        const matchTo = !toDate || itemDate <= new Date(toDate);
+        const matchFrom = !from || itemDate >= from;
+        const matchTo = !to || itemDate <= to;
 
         return matchCategory && matchFrom && matchTo;
     });
