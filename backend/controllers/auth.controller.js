@@ -27,7 +27,11 @@ exports.signup = async (req, res) => {
             password: hashedPassword,
         });
 
-        res.status(201).json({ message: "Signup success" });
+        const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+            expiresIn: "7d",
+        });
+
+        res.status(201).json({ message: "Signup success", token });
     } catch (err) {
         console.error("SIGNUP ERROR:", err);
         res.status(500).json({

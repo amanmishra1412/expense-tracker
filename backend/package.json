@@ -4,7 +4,7 @@
     "main": "app.js",
     "scripts": {
         "start": "node app.js",
-        "dev": "nodemon app.js",
+        "dev": "npx nodemon app.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [],
@@ -15,7 +15,8 @@
         "axios": "^1.13.2",
         "bcryptjs": "^3.0.3",
         "cors": "^2.8.5",
-        "dotenv": "^17.2.3",
+        "dotenv": "^17.4.2",
+        "exceljs": "^4.4.0",
         "express": "^5.1.0",
         "jsonwebtoken": "^9.0.3",
         "mongoose": "^9.1.2",

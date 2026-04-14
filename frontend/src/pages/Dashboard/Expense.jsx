@@ -83,6 +83,35 @@ const Expense = () => {
         }
     };
 
+    const downloadExcel = async () => {
+        try {
+            const query = new URLSearchParams({
+                fromDate,
+                toDate,
+                category: categoryFilter,
+            });
+
+            const response = await fetch(
+                `${import.meta.env.VITE_URI}/expense/export?${query}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${user.token}`,
+                    },
+                }
+            );
+
+            const blob = await response.blob();
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "expenses.xlsx";
+            a.click();
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
     return (
         <div className="bg-main min-h-screen p-3 sm:p-5">
             <div className="max-w-6xl mx-auto bg-card rounded-xl shadow-md p-4 sm:p-5 flex flex-col">
@@ -92,6 +121,12 @@ const Expense = () => {
                     </h2>
 
                     <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={downloadExcel}
+                            className="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+                        >
+                            Export Excel
+                        </button>
                         <select
                             className="w-full sm:w-auto rounded-lg border px-3 py-2 text-sm"
                             onChange={(e) => setCategoryFilter(e.target.value)}

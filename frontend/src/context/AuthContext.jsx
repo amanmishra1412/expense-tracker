@@ -23,6 +23,11 @@ const AuthContext = ({ children }) => {
         setUser({ token });
     };
 
+    const signUp = (token) => {
+        localStorage.setItem("token", token);
+        setUser({ token });
+    };
+
     const logout = () => {
         localStorage.removeItem("token");
         setUser(null);
@@ -35,6 +40,7 @@ const AuthContext = ({ children }) => {
                 loading,
                 isAuthenticated: !!user,
                 login,
+                signUp,
                 logout,
             }}
         >

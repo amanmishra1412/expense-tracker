@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login } = useContext(AuthData);
+    const { login, signUp } = useContext(AuthData);
 
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("login");
@@ -69,7 +69,10 @@ const Login = () => {
                 Swal.fire({
                     title: response.data.message,
                     icon: "success",
-                }).then(() => setActiveTab("login"));
+                }).then(() => {
+                    signUp(response.data.token);
+                    navigate("/dashboard", { replace: true });
+                });
             }
 
             setFormData({
@@ -79,6 +82,7 @@ const Login = () => {
                 confirmPassword: "",
             });
         } catch (err) {
+            console.log(err);
             Swal.fire({
                 title: err.response?.data?.message || "Server Error",
                 icon: "error",

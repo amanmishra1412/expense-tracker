@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import LandingPage from "../pages/LandingPage"; // Import Landing Page
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import AddExpense from "../pages/Dashboard/AddExpense";
@@ -11,6 +12,9 @@ import NotFound from "../pages/NotFound";
 const Routing = () => {
     return (
         <Routes>
+            {/* Public Landing Page */}
+            <Route path="/welcome" element={<LandingPage />} />
+
             <Route
                 path="/"
                 element={
