@@ -1,5 +1,6 @@
 const Expense = require("../models/expense.model");
 const ExcelJS = require("exceljs");
+const puppeteer = require("puppeteer-core");
 
 exports.addExpense = async (req, res) => {
     try {
@@ -134,6 +135,108 @@ exports.exportExpenses = async (req, res) => {
 
         await workbook.xlsx.write(res);
         res.end();
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+exports.exportExpensesPDF = async (req, res) => {
+    try {
+        const { fromDate, toDate, category } = req.query;
+
+        let filter = { user: req.user.id };
+
+        if (fromDate && toDate) {
+            filter.createdAt = {
+                $gte: new Date(fromDate),
+                $lte: new Date(toDate),
+            };
+        }
+
+        if (category) {
+            filter.category = category;
+        }
+
+        const expenses = await Expense.find(filter).sort({ createdAt: -1 });
+
+        let totalAmount = 0;
+
+        // 👉 HTML Template (Tailwind style)
+        const html = `
+        <html>
+        <head>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-100 p-6">
+            <div class="max-w-4xl mx-auto bg-white rounded-xl shadow p-6">
+
+                <h1 class="text-2xl font-bold mb-4">Expense Report</h1>
+
+                <table class="w-full text-sm border">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="p-2 text-left">S.No</th>
+                            <th class="p-2 text-left">Title</th>
+                            <th class="p-2 text-left">Category</th>
+                            <th class="p-2 text-left">Date</th>
+                            <th class="p-2 text-left">Amount</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        ${expenses.map((exp, i) => {
+            totalAmount += exp.amount;
+            return `
+                                <tr class="border-t">
+                                    <td class="p-2">${i + 1}</td>
+                                    <td class="p-2">${exp.title}</td>
+                                    <td class="p-2">${exp.category}</td>
+                                    <td class="p-2">${new Date(exp.createdAt).toLocaleDateString("en-GB")}</td>
+                                    <td class="p-2 text-red-600 font-semibold">₹ ${exp.amount}</td>
+                                </tr>
+                            `;
+        }).join("")}
+                    </tbody>
+
+                    <tfoot>
+                        <tr class="bg-gray-100 font-bold border-t">
+                            <td colspan="4" class="p-2 text-right">Total</td>
+                            <td class="p-2 text-red-600">₹ ${totalAmount}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </body>
+        </html>
+        `;
+
+        // Puppeteer launch
+
+        const browser = await puppeteer.launch({
+            executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            headless: "new",
+        });
+
+
+        const page = await browser.newPage();
+
+        await page.setContent(html, { waitUntil: "networkidle0" });
+
+        const pdfBuffer = await page.pdf({
+            format: "A4",
+            printBackground: true,
+        });
+
+        await browser.close();
+
+        // Response
+        res.set({
+            "Content-Type": "application/pdf",
+            "Content-Disposition": "attachment; filename=expenses.pdf",
+        });
+
+        res.send(pdfBuffer);
+
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

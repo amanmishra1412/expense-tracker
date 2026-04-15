@@ -7,6 +7,7 @@ import { AuthData } from "../../context/AuthContext";
 const Expense = () => {
     const { expenses, setExpenses } = useContext(ExpenseData);
     const { user } = useContext(AuthData);
+    const [loadingPDF, setLoadingPDF] = useState(false);
 
     const normalizeDate = (date) => {
         const d = new Date(date);
@@ -97,7 +98,7 @@ const Expense = () => {
                     headers: {
                         Authorization: `Bearer ${user.token}`,
                     },
-                }
+                },
             );
 
             const blob = await response.blob();
@@ -109,6 +110,39 @@ const Expense = () => {
             a.click();
         } catch (err) {
             console.log(err);
+        }
+    };
+
+    const downloadPDF = async () => {
+        try {
+            setLoadingPDF(true); // start loading
+
+            const query = new URLSearchParams({
+                fromDate,
+                toDate,
+                category: categoryFilter,
+            });
+
+            const response = await fetch(
+                `${import.meta.env.VITE_URI}/expense/export-pdf?${query}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${user.token}`,
+                    },
+                },
+            );
+
+            const blob = await response.blob();
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "expenses.pdf";
+            a.click();
+        } catch (err) {
+            console.log(err);
+        } finally {
+            setLoadingPDF(false); // stop loading
         }
     };
 
@@ -126,6 +160,21 @@ const Expense = () => {
                             className="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
                         >
                             Export Excel
+                        </button>
+                        <button
+                            onClick={downloadPDF}
+                            disabled={loadingPDF}
+                            className={`w-full sm:w-auto px-4 py-2 rounded-lg text-sm text-white flex items-center justify-center gap-2
+    ${loadingPDF ? "bg-gray-400 cursor-not-allowed" : "bg-red-600"}`}
+                        >
+                            {loadingPDF ? (
+                                <>
+                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                    Generating...
+                                </>
+                            ) : (
+                                "Export PDF"
+                            )}
                         </button>
                         <select
                             className="w-full sm:w-auto rounded-lg border px-3 py-2 text-sm"

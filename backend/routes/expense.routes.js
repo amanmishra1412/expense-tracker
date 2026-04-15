@@ -6,11 +6,13 @@ const {
     deleteExpense,
     getExpense,
     exportExpenses,
+    exportExpensesPDF,
 } = require("../controllers/expense.controller");
 
 router.post("/add", auth, addExpense);
 router.delete("/delete/:id", auth, deleteExpense);
 router.get("/", auth, getExpense);
 router.get("/export", auth, exportExpenses);
+router.get("/export-pdf", auth, exportExpensesPDF);
 
 module.exports = router;
