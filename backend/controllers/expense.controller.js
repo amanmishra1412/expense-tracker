@@ -143,6 +143,7 @@ exports.exportExpenses = async (req, res) => {
 exports.exportExpensesPDF = async (req, res) => {
     try {
         const { fromDate, toDate, category } = req.query;
+
         let filter = { user: req.user.id };
 
         if (fromDate && toDate) {
@@ -151,103 +152,172 @@ exports.exportExpensesPDF = async (req, res) => {
                 $lte: new Date(toDate),
             };
         }
+
         if (category) filter.category = category;
 
         const expenses = await Expense.find(filter).sort({ createdAt: -1 });
 
-        const doc = new PDFDocument({ 
-            margin: 50, 
+        const doc = new PDFDocument({
+            margin: 50,
             size: "A4",
-            bufferPages: true 
+            bufferPages: true,
         });
 
         res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", "attachment; filename=expenses_report.pdf");
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=expenses_report.pdf"
+        );
+
         doc.pipe(res);
 
-        // --- Header Section ---
-        // Align: center use kiya gaya hai
-        doc.fillColor("#1e293b").fontSize(24).font("Helvetica-Bold").text("EXPENSE REPORT", { align: "center" });
-        
-        doc.moveDown(0.2);
-        doc.fillColor("#64748b").fontSize(10).font("Helvetica").text(`Report Period: ${fromDate || "Initial"} to ${toDate || "Present"}`, { align: "center" });
-        doc.text(`Category: ${category || "All Categories"}`, { align: "center" });
-        
-        doc.moveTo(50, 130).lineTo(545, 130).strokeColor("#cbd5e1").lineWidth(1).stroke();
-        doc.moveDown(3);
+        // ================= HEADER =================
+        doc
+            .fillColor("#1e293b")
+            .fontSize(24)
+            .font("Helvetica-Bold")
+            .text("EXPENSE REPORT", { align: "center" });
 
-        // --- Table Constants (Widths define ki gayi hain centering ke liye) ---
+        doc
+            .moveDown(0.2)
+            .fillColor("#64748b")
+            .fontSize(10)
+            .font("Helvetica")
+            .text(
+                `Report Period: ${fromDate || "Initial"} to ${toDate || "Present"}`,
+                { align: "center" }
+            )
+            .text(`Category: ${category || "All Categories"}`, {
+                align: "center",
+            });
+
+        doc.moveTo(50, 130)
+            .lineTo(545, 130)
+            .strokeColor("#cbd5e1")
+            .lineWidth(1)
+            .stroke();
+
+        // ================= TABLE =================
         const tableTop = 160;
         const rowHeight = 30;
-        const colWidths = { sno: 40, title: 180, category: 100, date: 90, amount: 85 };
+
+        const colWidths = {
+            sno: 40,
+            title: 180,
+            category: 100,
+            date: 90,
+            amount: 85,
+        };
+
         const colX = {
             sno: 50,
             title: 90,
             category: 270,
             date: 370,
-            amount: 460
+            amount: 460,
         };
 
         let y = tableTop;
 
-        // --- Table Header ---
-        doc.rect(50, y, 495, rowHeight).fill("#1e293b"); 
+        // ===== HEADER ROW =====
+        doc.rect(50, y, 495, rowHeight).fill("#1e293b");
+
         doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10);
-        
-        // Har text field mein { width: X, align: 'center' } lagaya gaya hai
-        doc.text("ID", colX.sno, y + 10, { width: colWidths.sno, align: 'center' });
-        doc.text("DESCRIPTION", colX.title, y + 10, { width: colWidths.title, align: 'center' });
-        doc.text("CATEGORY", colX.category, y + 10, { width: colWidths.category, align: 'center' });
-        doc.text("DATE", colX.date, y + 10, { width: colWidths.date, align: 'center' });
-        doc.text("AMOUNT", colX.amount, y + 10, { width: colWidths.amount, align: 'center' });
+
+        doc.text("ID", colX.sno, y + 10, { width: colWidths.sno, align: "center" });
+        doc.text("DESCRIPTION", colX.title, y + 10, { width: colWidths.title, align: "center" });
+        doc.text("CATEGORY", colX.category, y + 10, { width: colWidths.category, align: "center" });
+        doc.text("DATE", colX.date, y + 10, { width: colWidths.date, align: "center" });
+        doc.text("AMOUNT", colX.amount, y + 10, { width: colWidths.amount, align: "center" });
 
         y += rowHeight;
+
         let totalAmount = 0;
 
-        // --- Table Rows ---
+        // ===== ROWS =====
         doc.font("Helvetica").fontSize(10);
-        
+
         expenses.forEach((exp, i) => {
             totalAmount += exp.amount;
 
+            // PAGE BREAK FIX
+            if (y + rowHeight > doc.page.height - 100) {
+                doc.addPage();
+                y = 50;
+            }
+
+            // Alternate row
             if (i % 2 !== 0) {
                 doc.rect(50, y, 495, rowHeight).fill("#f8fafc");
             }
 
             doc.fillColor("#334155");
-            doc.text(i + 1, colX.sno, y + 10, { width: colWidths.sno, align: 'center' });
-            doc.text(exp.title, colX.title, y + 10, { width: colWidths.title, align: 'center', ellipsis: true });
-            doc.text(exp.category, colX.category, y + 10, { width: colWidths.category, align: 'center' });
-            doc.text(new Date(exp.createdAt).toLocaleDateString("en-GB"), colX.date, y + 10, { width: colWidths.date, align: 'center' });
-            
-            doc.fillColor("#000000").font("Helvetica-Bold")
-               .text(`₹${exp.amount.toLocaleString()}`, colX.amount, y + 10, { width: colWidths.amount, align: 'center' });
-            
-            doc.font("Helvetica");
-            y += rowHeight;
 
-            if (y > 730) {
-                doc.addPage();
-                y = 50;
-            }
+            doc.text(i + 1, colX.sno, y + 10, { width: colWidths.sno, align: "center" });
+            doc.text(exp.title, colX.title, y + 10, {
+                width: colWidths.title,
+                align: "center",
+                ellipsis: true,
+            });
+            doc.text(exp.category, colX.category, y + 10, {
+                width: colWidths.category,
+                align: "center",
+            });
+            doc.text(
+                new Date(exp.createdAt).toLocaleDateString("en-GB"),
+                colX.date,
+                y + 10,
+                { width: colWidths.date, align: "center" }
+            );
+
+            doc.fillColor("#000000").font("Helvetica-Bold").text(
+                `${exp.amount.toLocaleString()}`,
+                colX.amount,
+                y + 10,
+                { width: colWidths.amount, align: "center" }
+            );
+
+            doc.font("Helvetica");
+
+            y += rowHeight;
         });
 
-        // --- Summary Row (Centered under Amount column) ---
-        doc.moveDown(1);
-        y = doc.y;
+        // ================= TOTAL =================
+        if (y + rowHeight > doc.page.height - 100) {
+            doc.addPage();
+            y = 50;
+        }
 
         doc.rect(370, y, 175, rowHeight).fill("#f1f5f9");
-        doc.fillColor("#1e293b").font("Helvetica-Bold").fontSize(11);
-        doc.text("TOTAL:", 370, y + 10, { width: 90, align: 'right' }); 
-        doc.fillColor("#dc2626").text(`₹${totalAmount.toLocaleString()}`, colX.amount, y + 10, { width: colWidths.amount, align: 'center' });
 
-        // --- Footer ---
+        doc.fillColor("#1e293b").font("Helvetica-Bold").fontSize(11);
+
+        doc.text("TOTAL:", 370, y + 10, {
+            width: 90,
+            align: "right",
+        });
+
+        doc.fillColor("#dc2626").text(
+            `${totalAmount.toLocaleString()}`,
+            colX.amount,
+            y + 10,
+            { width: colWidths.amount, align: "center" }
+        );
+
+        // ================= FOOTER =================
         const pages = doc.bufferedPageRange();
+
         for (let i = 0; i < pages.count; i++) {
             doc.switchToPage(i);
-            doc.fillColor("#94a3b8").fontSize(8)
-               .text(`Generated on ${new Date().toLocaleString()}  |  Page ${i + 1} of ${pages.count}`, 
-               0, 800, { align: "center", width: doc.page.width });
+
+            const footerY = doc.page.height - 40;
+
+            doc.fillColor("#94a3b8").fontSize(8).text(
+                `Generated on ${new Date().toLocaleString()}  |  Page ${i + 1} of ${pages.count}`,
+                0,
+                footerY,
+                { align: "center", width: doc.page.width }
+            );
         }
 
         doc.end();
