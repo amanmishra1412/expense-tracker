@@ -141,6 +141,8 @@ exports.exportExpenses = async (req, res) => {
 };
 
 exports.exportExpensesPDF = async (req, res) => {
+    let browser;
+
     try {
         const { fromDate, toDate, category } = req.query;
 
@@ -161,83 +163,90 @@ exports.exportExpensesPDF = async (req, res) => {
 
         let totalAmount = 0;
 
-        // 👉 HTML Template (Tailwind style)
         const html = `
         <html>
         <head>
-            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                body { font-family: Arial; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #ddd; padding: 8px; }
+                th { background: #f3f4f6; }
+                .amount { color: red; font-weight: bold; }
+            </style>
         </head>
-        <body class="bg-gray-100 p-6">
-            <div class="max-w-4xl mx-auto bg-white rounded-xl shadow p-6">
-
-                <h1 class="text-2xl font-bold mb-4">Expense Report</h1>
-
-                <table class="w-full text-sm border">
-                    <thead class="bg-gray-200">
-                        <tr>
-                            <th class="p-2 text-left">S.No</th>
-                            <th class="p-2 text-left">Title</th>
-                            <th class="p-2 text-left">Category</th>
-                            <th class="p-2 text-left">Date</th>
-                            <th class="p-2 text-left">Amount</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        ${expenses.map((exp, i) => {
+        <body>
+            <h2>Expense Report</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>S.No</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${expenses.map((exp, i) => {
             totalAmount += exp.amount;
             return `
-                                <tr class="border-t">
-                                    <td class="p-2">${i + 1}</td>
-                                    <td class="p-2">${exp.title}</td>
-                                    <td class="p-2">${exp.category}</td>
-                                    <td class="p-2">${new Date(exp.createdAt).toLocaleDateString("en-GB")}</td>
-                                    <td class="p-2 text-red-600 font-semibold">₹ ${exp.amount}</td>
-                                </tr>
-                            `;
+                            <tr>
+                                <td>${i + 1}</td>
+                                <td>${exp.title}</td>
+                                <td>${exp.category}</td>
+                                <td>${new Date(exp.createdAt).toLocaleDateString("en-GB")}</td>
+                                <td class="amount">₹ ${exp.amount}</td>
+                            </tr>
+                        `;
         }).join("")}
-                    </tbody>
-
-                    <tfoot>
-                        <tr class="bg-gray-100 font-bold border-t">
-                            <td colspan="4" class="p-2 text-right">Total</td>
-                            <td class="p-2 text-red-600">₹ ${totalAmount}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" style="text-align:right;"><b>Total</b></td>
+                        <td class="amount">₹ ${totalAmount}</td>
+                    </tr>
+                </tfoot>
+            </table>
         </body>
         </html>
         `;
+        const isProduction = process.env.NODE_ENV === "production";
 
-        // Puppeteer launch
-
-        const browser = await puppeteer.launch({
-            executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-            headless: "new",
-        });
-
+        if (isProduction) {
+            // 🔥 Render / Linux
+            browser = await puppeteer.launch({
+                args: ["--no-sandbox", "--disable-setuid-sandbox"],
+                headless: true,
+            });
+        } else {
+            // 💻 Local Windows
+            browser = await puppeteer.launch({
+                executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+                headless: "new",
+            });
+        }
 
         const page = await browser.newPage();
-
-        await page.setContent(html, { waitUntil: "networkidle0" });
+        await page.setContent(html, { waitUntil: "load" });
 
         const pdfBuffer = await page.pdf({
             format: "A4",
             printBackground: true,
         });
 
-        await browser.close();
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Length", pdfBuffer.length);
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=expenses.pdf"
+        );
 
-        // Response
-        res.set({
-            "Content-Type": "application/pdf",
-            "Content-Disposition": "attachment; filename=expenses.pdf",
-        });
-
-        res.send(pdfBuffer);
+        res.status(200).end(pdfBuffer);
 
     } catch (err) {
+        console.error(err);
         res.status(500).json({ message: err.message });
+    } finally {
+        if (browser) await browser.close();
     }
 };
