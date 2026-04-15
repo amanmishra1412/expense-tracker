@@ -1,6 +1,6 @@
 const Expense = require("../models/expense.model");
 const ExcelJS = require("exceljs");
-const puppeteer = require("puppeteer-core");
+const PDFDocument = require("pdfkit");
 
 exports.addExpense = async (req, res) => {
     try {
@@ -141,11 +141,8 @@ exports.exportExpenses = async (req, res) => {
 };
 
 exports.exportExpensesPDF = async (req, res) => {
-    let browser;
-
     try {
         const { fromDate, toDate, category } = req.query;
-
         let filter = { user: req.user.id };
 
         if (fromDate && toDate) {
@@ -154,99 +151,109 @@ exports.exportExpensesPDF = async (req, res) => {
                 $lte: new Date(toDate),
             };
         }
-
-        if (category) {
-            filter.category = category;
-        }
+        if (category) filter.category = category;
 
         const expenses = await Expense.find(filter).sort({ createdAt: -1 });
 
-        let totalAmount = 0;
-
-        const html = `
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial; padding: 20px; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ddd; padding: 8px; }
-                th { background: #f3f4f6; }
-                .amount { color: red; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <h2>Expense Report</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>S.No</th>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th>Date</th>
-                        <th>Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${expenses.map((exp, i) => {
-            totalAmount += exp.amount;
-            return `
-                            <tr>
-                                <td>${i + 1}</td>
-                                <td>${exp.title}</td>
-                                <td>${exp.category}</td>
-                                <td>${new Date(exp.createdAt).toLocaleDateString("en-GB")}</td>
-                                <td class="amount">₹ ${exp.amount}</td>
-                            </tr>
-                        `;
-        }).join("")}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="4" style="text-align:right;"><b>Total</b></td>
-                        <td class="amount">₹ ${totalAmount}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </body>
-        </html>
-        `;
-        const isProduction = process.env.NODE_ENV === "production";
-
-        if (isProduction) {
-            // 🔥 Render / Linux
-            browser = await puppeteer.launch({
-                args: ["--no-sandbox", "--disable-setuid-sandbox"],
-                headless: true,
-            });
-        } else {
-            // 💻 Local Windows
-            browser = await puppeteer.launch({
-                executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-                headless: "new",
-            });
-        }
-
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: "load" });
-
-        const pdfBuffer = await page.pdf({
-            format: "A4",
-            printBackground: true,
+        const doc = new PDFDocument({ 
+            margin: 50, 
+            size: "A4",
+            bufferPages: true 
         });
 
         res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Length", pdfBuffer.length);
-        res.setHeader(
-            "Content-Disposition",
-            "attachment; filename=expenses.pdf"
-        );
+        res.setHeader("Content-Disposition", "attachment; filename=expenses_report.pdf");
+        doc.pipe(res);
 
-        res.status(200).end(pdfBuffer);
+        // --- Header Section ---
+        // Align: center use kiya gaya hai
+        doc.fillColor("#1e293b").fontSize(24).font("Helvetica-Bold").text("EXPENSE REPORT", { align: "center" });
+        
+        doc.moveDown(0.2);
+        doc.fillColor("#64748b").fontSize(10).font("Helvetica").text(`Report Period: ${fromDate || "Initial"} to ${toDate || "Present"}`, { align: "center" });
+        doc.text(`Category: ${category || "All Categories"}`, { align: "center" });
+        
+        doc.moveTo(50, 130).lineTo(545, 130).strokeColor("#cbd5e1").lineWidth(1).stroke();
+        doc.moveDown(3);
+
+        // --- Table Constants (Widths define ki gayi hain centering ke liye) ---
+        const tableTop = 160;
+        const rowHeight = 30;
+        const colWidths = { sno: 40, title: 180, category: 100, date: 90, amount: 85 };
+        const colX = {
+            sno: 50,
+            title: 90,
+            category: 270,
+            date: 370,
+            amount: 460
+        };
+
+        let y = tableTop;
+
+        // --- Table Header ---
+        doc.rect(50, y, 495, rowHeight).fill("#1e293b"); 
+        doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10);
+        
+        // Har text field mein { width: X, align: 'center' } lagaya gaya hai
+        doc.text("ID", colX.sno, y + 10, { width: colWidths.sno, align: 'center' });
+        doc.text("DESCRIPTION", colX.title, y + 10, { width: colWidths.title, align: 'center' });
+        doc.text("CATEGORY", colX.category, y + 10, { width: colWidths.category, align: 'center' });
+        doc.text("DATE", colX.date, y + 10, { width: colWidths.date, align: 'center' });
+        doc.text("AMOUNT", colX.amount, y + 10, { width: colWidths.amount, align: 'center' });
+
+        y += rowHeight;
+        let totalAmount = 0;
+
+        // --- Table Rows ---
+        doc.font("Helvetica").fontSize(10);
+        
+        expenses.forEach((exp, i) => {
+            totalAmount += exp.amount;
+
+            if (i % 2 !== 0) {
+                doc.rect(50, y, 495, rowHeight).fill("#f8fafc");
+            }
+
+            doc.fillColor("#334155");
+            doc.text(i + 1, colX.sno, y + 10, { width: colWidths.sno, align: 'center' });
+            doc.text(exp.title, colX.title, y + 10, { width: colWidths.title, align: 'center', ellipsis: true });
+            doc.text(exp.category, colX.category, y + 10, { width: colWidths.category, align: 'center' });
+            doc.text(new Date(exp.createdAt).toLocaleDateString("en-GB"), colX.date, y + 10, { width: colWidths.date, align: 'center' });
+            
+            doc.fillColor("#000000").font("Helvetica-Bold")
+               .text(`₹${exp.amount.toLocaleString()}`, colX.amount, y + 10, { width: colWidths.amount, align: 'center' });
+            
+            doc.font("Helvetica");
+            y += rowHeight;
+
+            if (y > 730) {
+                doc.addPage();
+                y = 50;
+            }
+        });
+
+        // --- Summary Row (Centered under Amount column) ---
+        doc.moveDown(1);
+        y = doc.y;
+
+        doc.rect(370, y, 175, rowHeight).fill("#f1f5f9");
+        doc.fillColor("#1e293b").font("Helvetica-Bold").fontSize(11);
+        doc.text("TOTAL:", 370, y + 10, { width: 90, align: 'right' }); 
+        doc.fillColor("#dc2626").text(`₹${totalAmount.toLocaleString()}`, colX.amount, y + 10, { width: colWidths.amount, align: 'center' });
+
+        // --- Footer ---
+        const pages = doc.bufferedPageRange();
+        for (let i = 0; i < pages.count; i++) {
+            doc.switchToPage(i);
+            doc.fillColor("#94a3b8").fontSize(8)
+               .text(`Generated on ${new Date().toLocaleString()}  |  Page ${i + 1} of ${pages.count}`, 
+               0, 800, { align: "center", width: doc.page.width });
+        }
+
+        doc.end();
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: err.message });
-    } finally {
-        if (browser) await browser.close();
+        res.status(500).json({ message: "Error generating PDF" });
     }
 };
