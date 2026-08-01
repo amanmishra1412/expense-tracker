@@ -11,8 +11,12 @@ const expenseSchema = new mongoose.Schema(
       required: true,
     },
     category: String,
-    
-
+    type: {
+      type: String,
+      enum: ["income", "expense"],
+      default: "expense",
+      required: true,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

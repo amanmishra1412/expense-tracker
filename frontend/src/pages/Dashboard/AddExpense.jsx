@@ -10,20 +10,58 @@ const AddExpense = () => {
     const { setExpenses } = useContext(ExpenseData);
 
     const [formData, setFormData] = useState({
+        type: "expense",
         title: "",
         amount: "",
         category: "",
         date: today,
     });
 
+    const expenseCategories = [
+        "Food",
+        "Travel",
+        "Rent",
+        "Bills",
+        "Shopping",
+        "Entertainment",
+        "Health",
+        "Other",
+    ];
+
+    const incomeCategories = [
+        "Salary",
+        "Freelance",
+        "Business",
+        "Investment",
+        "Bonus",
+        "Other",
+    ];
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
     };
 
+    const handleTypeChange = (newType) => {
+        setFormData((prev) => ({
+            ...prev,
+            type: newType,
+            category: "", // reset category when type changes
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         let token = localStorage.getItem("token");
+
+        if (!formData.title || !formData.amount) {
+            Swal.fire({
+                title: "Error",
+                text: "Please fill in all required fields",
+                icon: "error",
+            });
+            return;
+        }
 
         try {
             let res = await axios.post(
@@ -38,39 +76,72 @@ const AddExpense = () => {
 
             if (res.status === 201) {
                 Swal.fire({
-                    title: res.data.message,
+                    title: `${formData.type === "income" ? "Income" : "Expense"} Added Successfully!`,
                     icon: "success",
+                    timer: 1500,
+                    showConfirmButton: false,
                 }).then(() => {
-                    setExpenses((prev) => [...prev, res.data.expense]);
-
+                    setExpenses((prev) => [res.data.expense, ...prev]);
                     navigate(-1);
                 });
-            } else {
-                console.log(res);
             }
         } catch (err) {
             console.log(err);
+            Swal.fire({
+                title: "Error",
+                text: err.response?.data?.message || "Failed to add record",
+                icon: "error",
+            });
         }
     };
 
+    const categories = formData.type === "income" ? incomeCategories : expenseCategories;
+
     return (
-        <div className="bg-main flex items-center justify-center px-4">
+        <div className="bg-main flex items-center justify-center px-4 py-8">
             <div className="bg-card w-full max-w-md rounded-xl shadow-lg p-6 relative">
                 {/* 🔙 Back Button */}
                 <button
                     onClick={() => navigate(-1)}
-                    className="absolute top-4 left-4 text-sm text-gray-500 hover:text-dark"
+                    className="absolute top-4 left-4 text-sm text-gray-500 hover:text-dark flex items-center gap-1"
                 >
                     ← Back
                 </button>
 
                 {/* Header */}
-                <h2 className="text-2xl font-semibold text-dark mb-1 text-center">
-                    Add Expense
+                <h2 className="text-2xl font-semibold text-dark mb-1 text-center mt-2">
+                    Add Transaction
                 </h2>
                 <p className="text-sm text-gray-500 mb-6 text-center">
-                    Record your expense details
+                    Record your income or expense details
                 </p>
+
+                {/* TYPE SELECTOR TOGGLE */}
+                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg mb-5">
+                    <button
+                        type="button"
+                        onClick={() => handleTypeChange("expense")}
+                        className={`py-2 text-sm font-semibold rounded-md transition ${
+                            formData.type === "expense"
+                                ? "bg-red-600 text-white shadow"
+                                : "text-gray-600 hover:text-dark"
+                        }`}
+                    >
+                        💸 Expense (Kharch)
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleTypeChange("income")}
+                        className={`py-2 text-sm font-semibold rounded-md transition ${
+                            formData.type === "income"
+                                ? "bg-green-600 text-white shadow"
+                                : "text-gray-600 hover:text-dark"
+                        }`}
+                    >
+                        💰 Income (Aaya)
+                    </button>
+                </div>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -91,14 +162,18 @@ const AddExpense = () => {
                     {/* Title */}
                     <div>
                         <label className="text-sm font-medium text-dark">
-                            Expense Title
+                            {formData.type === "income" ? "Income Source / Title" : "Expense Title"}
                         </label>
                         <input
                             type="text"
                             name="title"
                             value={formData.title}
                             onChange={handleChange}
-                            placeholder="Grocery / Rent / Fuel"
+                            placeholder={
+                                formData.type === "income"
+                                    ? "Salary / Client Work / Interest"
+                                    : "Grocery / Rent / Fuel"
+                            }
                             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--accent)"
                         />
                     </div>
@@ -106,7 +181,7 @@ const AddExpense = () => {
                     {/* Amount */}
                     <div>
                         <label className="text-sm font-medium text-dark">
-                            Amount
+                            Amount (₹)
                         </label>
                         <input
                             type="number"
@@ -118,7 +193,7 @@ const AddExpense = () => {
                         />
                     </div>
 
-                    {/* Category (Expense based) */}
+                    {/* Category */}
                     <div>
                         <label className="text-sm font-medium text-dark">
                             Category
@@ -127,30 +202,25 @@ const AddExpense = () => {
                             name="category"
                             value={formData.category}
                             onChange={handleChange}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--accent) "
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--accent)"
                         >
                             <option value="">Select category</option>
-                            <option value="Food">Food</option>
-                            <option value="Travel">Travel</option>
-                            <option value="Rent">Rent</option>
-                            <option value="Bills">Bills</option>
-                            <option value="Shopping">Shopping</option>
-                            <option value="Entertainment">Entertainment</option>
-                            <option value="Health">Health</option>
-                            <option value="Other">Other</option>
+                            {categories.map((cat) => (
+                                <option key={cat} value={cat}>
+                                    {cat}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
                     {/* Button */}
                     <button
                         type="submit"
-                        className="
-                            w-full mt-4 py-2 rounded-lg
-                            bg-primary text-white font-medium
-                            hover:opacity-90 transition
-                        "
+                        className={`w-full mt-4 py-2.5 rounded-lg text-white font-medium hover:opacity-90 transition ${
+                            formData.type === "income" ? "bg-green-600" : "bg-red-600"
+                        }`}
                     >
-                        Add Expense
+                        + Add {formData.type === "income" ? "Income" : "Expense"}
                     </button>
                 </form>
             </div>

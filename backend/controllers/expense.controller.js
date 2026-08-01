@@ -4,12 +4,13 @@ const PDFDocument = require("pdfkit");
 
 exports.addExpense = async (req, res) => {
     try {
-        const { title, amount, category, date } = req.body;
+        const { title, amount, category, date, type } = req.body;
 
         const expense = await Expense.create({
             title,
-            amount,
+            amount: Number(amount),
             category,
+            type: type || "expense",
             user: req.user.id,
             createdAt: date ? new Date(date) : undefined,
         });
@@ -60,7 +61,7 @@ exports.deleteExpense = async (req, res) => {
 
 exports.exportExpenses = async (req, res) => {
     try {
-        const { fromDate, toDate, category } = req.query;
+        const { fromDate, toDate, category, type } = req.query;
 
         let filter = { user: req.user.id };
 
@@ -77,51 +78,86 @@ exports.exportExpenses = async (req, res) => {
             filter.category = category;
         }
 
+        // Type filter
+        if (type) {
+            filter.type = type;
+        }
+
         const expenses = await Expense.find(filter).sort({ createdAt: -1 });
 
         // Excel start
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet("Expenses");
+        const worksheet = workbook.addWorksheet("Financial Statement");
 
         worksheet.columns = [
             { header: "S.No", key: "sno", width: 8 },
             { header: "Title", key: "title", width: 25 },
+            { header: "Type", key: "type", width: 12 },
             { header: "Category", key: "category", width: 15 },
             { header: "Date", key: "date", width: 15 },
-            { header: "Amount", key: "amount", width: 12 },
+            { header: "Amount (₹)", key: "amount", width: 15 },
         ];
 
-        let totalAmount = 0;
+        let totalIncome = 0;
+        let totalExpense = 0;
 
         expenses.forEach((exp, index) => {
-            totalAmount += exp.amount;
+            const itemType = exp.type || "expense";
+            if (itemType === "income") {
+                totalIncome += exp.amount;
+            } else {
+                totalExpense += exp.amount;
+            }
 
-            worksheet.addRow({
+            const row = worksheet.addRow({
                 sno: index + 1,
                 title: exp.title,
+                type: itemType.toUpperCase(),
                 category: exp.category,
                 date: exp.createdAt,
-                amount: exp.amount,
+                amount: itemType === "income" ? exp.amount : -exp.amount,
             });
+
+            if (itemType === "income") {
+                row.getCell("type").font = { color: { argb: "FF16A34A" }, bold: true };
+                row.getCell("amount").font = { color: { argb: "FF16A34A" }, bold: true };
+            } else {
+                row.getCell("type").font = { color: { argb: "FFDC2626" }, bold: true };
+                row.getCell("amount").font = { color: { argb: "FFDC2626" }, bold: true };
+            }
         });
 
-        // Styling
+        // Styling Header
         worksheet.getRow(1).font = { bold: true };
         worksheet.getColumn("date").numFmt = "dd-mm-yyyy";
 
-        // 👉 Total Row
-        const totalRow = worksheet.addRow({
-            title: "Total",
-            amount: totalAmount,
+        worksheet.addRow({}); // empty separator row
+
+        // 👉 Total Rows
+        const incomeRow = worksheet.addRow({
+            title: "Total Income",
+            amount: totalIncome,
         });
+        incomeRow.font = { bold: true, color: { argb: "FF16A34A" } };
+        worksheet.mergeCells(`A${incomeRow.number}:E${incomeRow.number}`);
+        incomeRow.getCell("F").alignment = { horizontal: "right" };
 
-        totalRow.font = { bold: true };
+        const expenseRow = worksheet.addRow({
+            title: "Total Expense",
+            amount: totalExpense,
+        });
+        expenseRow.font = { bold: true, color: { argb: "FFDC2626" } };
+        worksheet.mergeCells(`A${expenseRow.number}:E${expenseRow.number}`);
+        expenseRow.getCell("F").alignment = { horizontal: "right" };
 
-        // Merge cells for better UI (Title → Category → Date)
-        worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
-
-        // Right align total amount
-        totalRow.getCell("E").alignment = { horizontal: "right" };
+        const netBalance = totalIncome - totalExpense;
+        const netRow = worksheet.addRow({
+            title: "Net Balance",
+            amount: netBalance,
+        });
+        netRow.font = { bold: true };
+        worksheet.mergeCells(`A${netRow.number}:E${netRow.number}`);
+        netRow.getCell("F").alignment = { horizontal: "right" };
 
         // Response
         res.setHeader(
@@ -130,7 +166,7 @@ exports.exportExpenses = async (req, res) => {
         );
         res.setHeader(
             "Content-Disposition",
-            "attachment; filename=expenses.xlsx"
+            "attachment; filename=financial_statement.xlsx"
         );
 
         await workbook.xlsx.write(res);
@@ -142,7 +178,7 @@ exports.exportExpenses = async (req, res) => {
 
 exports.exportExpensesPDF = async (req, res) => {
     try {
-        const { fromDate, toDate, category } = req.query;
+        const { fromDate, toDate, category, type } = req.query;
 
         let filter = { user: req.user.id };
 
@@ -154,6 +190,7 @@ exports.exportExpensesPDF = async (req, res) => {
         }
 
         if (category) filter.category = category;
+        if (type) filter.type = type;
 
         const expenses = await Expense.find(filter).sort({ createdAt: -1 });
 
@@ -166,7 +203,7 @@ exports.exportExpensesPDF = async (req, res) => {
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
             "Content-Disposition",
-            "attachment; filename=expenses_report.pdf"
+            "attachment; filename=financial_report.pdf"
         );
 
         doc.pipe(res);
@@ -174,9 +211,9 @@ exports.exportExpensesPDF = async (req, res) => {
         // ================= HEADER =================
         doc
             .fillColor("#1e293b")
-            .fontSize(24)
+            .fontSize(22)
             .font("Helvetica-Bold")
-            .text("EXPENSE REPORT", { align: "center" });
+            .text("FINANCIAL STATEMENT REPORT", { align: "center" });
 
         doc
             .moveDown(0.2)
@@ -184,10 +221,10 @@ exports.exportExpensesPDF = async (req, res) => {
             .fontSize(10)
             .font("Helvetica")
             .text(
-                `Report Period: ${fromDate || "Initial"} to ${toDate || "Present"}`,
+                `Period: ${fromDate || "Initial"} to ${toDate || "Present"}`,
                 { align: "center" }
             )
-            .text(`Category: ${category || "All Categories"}`, {
+            .text(`Filter: ${type ? type.toUpperCase() : "ALL"} | Category: ${category || "All"}`, {
                 align: "center",
             });
 
@@ -198,23 +235,25 @@ exports.exportExpensesPDF = async (req, res) => {
             .stroke();
 
         // ================= TABLE =================
-        const tableTop = 160;
-        const rowHeight = 30;
+        const tableTop = 150;
+        const rowHeight = 28;
 
         const colWidths = {
-            sno: 40,
-            title: 180,
-            category: 100,
-            date: 90,
-            amount: 85,
+            sno: 30,
+            title: 150,
+            type: 65,
+            category: 95,
+            date: 75,
+            amount: 80,
         };
 
         const colX = {
             sno: 50,
-            title: 90,
-            category: 270,
-            date: 370,
-            amount: 460,
+            title: 80,
+            type: 230,
+            category: 295,
+            date: 390,
+            amount: 465,
         };
 
         let y = tableTop;
@@ -222,87 +261,102 @@ exports.exportExpensesPDF = async (req, res) => {
         // ===== HEADER ROW =====
         doc.rect(50, y, 495, rowHeight).fill("#1e293b");
 
-        doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10);
+        doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(9);
 
-        doc.text("ID", colX.sno, y + 10, { width: colWidths.sno, align: "center" });
-        doc.text("DESCRIPTION", colX.title, y + 10, { width: colWidths.title, align: "center" });
-        doc.text("CATEGORY", colX.category, y + 10, { width: colWidths.category, align: "center" });
-        doc.text("DATE", colX.date, y + 10, { width: colWidths.date, align: "center" });
-        doc.text("AMOUNT", colX.amount, y + 10, { width: colWidths.amount, align: "center" });
+        doc.text("ID", colX.sno, y + 9, { width: colWidths.sno, align: "center" });
+        doc.text("TITLE", colX.title, y + 9, { width: colWidths.title, align: "center" });
+        doc.text("TYPE", colX.type, y + 9, { width: colWidths.type, align: "center" });
+        doc.text("CATEGORY", colX.category, y + 9, { width: colWidths.category, align: "center" });
+        doc.text("DATE", colX.date, y + 9, { width: colWidths.date, align: "center" });
+        doc.text("AMOUNT (₹)", colX.amount, y + 9, { width: colWidths.amount, align: "center" });
 
         y += rowHeight;
 
-        let totalAmount = 0;
+        let totalIncome = 0;
+        let totalExpense = 0;
 
         // ===== ROWS =====
-        doc.font("Helvetica").fontSize(10);
+        doc.font("Helvetica").fontSize(9);
 
         expenses.forEach((exp, i) => {
-            totalAmount += exp.amount;
+            const itemType = exp.type || "expense";
+            if (itemType === "income") {
+                totalIncome += exp.amount;
+            } else {
+                totalExpense += exp.amount;
+            }
 
             // PAGE BREAK FIX
-            if (y + rowHeight > doc.page.height - 100) {
+            if (y + rowHeight > doc.page.height - 120) {
                 doc.addPage();
                 y = 50;
             }
 
-            // Alternate row
+            // Alternate row background
             if (i % 2 !== 0) {
                 doc.rect(50, y, 495, rowHeight).fill("#f8fafc");
             }
 
             doc.fillColor("#334155");
 
-            doc.text(i + 1, colX.sno, y + 10, { width: colWidths.sno, align: "center" });
-            doc.text(exp.title, colX.title, y + 10, {
+            doc.text(i + 1, colX.sno, y + 8, { width: colWidths.sno, align: "center" });
+            doc.text(exp.title, colX.title, y + 8, {
                 width: colWidths.title,
                 align: "center",
                 ellipsis: true,
             });
-            doc.text(exp.category, colX.category, y + 10, {
+
+            // Type text & color
+            const isIncome = itemType === "income";
+            doc.fillColor(isIncome ? "#16a34a" : "#dc2626").font("Helvetica-Bold");
+            doc.text(itemType.toUpperCase(), colX.type, y + 8, {
+                width: colWidths.type,
+                align: "center",
+            });
+
+            doc.fillColor("#334155").font("Helvetica");
+            doc.text(exp.category, colX.category, y + 8, {
                 width: colWidths.category,
                 align: "center",
             });
             doc.text(
                 new Date(exp.createdAt).toLocaleDateString("en-GB"),
                 colX.date,
-                y + 10,
+                y + 8,
                 { width: colWidths.date, align: "center" }
             );
 
-            doc.fillColor("#000000").font("Helvetica-Bold").text(
-                `${exp.amount.toLocaleString()}`,
+            // Amount text & color
+            doc.fillColor(isIncome ? "#16a34a" : "#dc2626").font("Helvetica-Bold");
+            doc.text(
+                `${isIncome ? "+" : "-"}${exp.amount.toLocaleString()}`,
                 colX.amount,
-                y + 10,
+                y + 8,
                 { width: colWidths.amount, align: "center" }
             );
 
             doc.font("Helvetica");
-
             y += rowHeight;
         });
 
-        // ================= TOTAL =================
-        if (y + rowHeight > doc.page.height - 100) {
+        // ================= SUMMARY BOX =================
+        if (y + 90 > doc.page.height - 50) {
             doc.addPage();
             y = 50;
         }
 
-        doc.rect(370, y, 175, rowHeight).fill("#f1f5f9");
+        y += 10;
+        const netBalance = totalIncome - totalExpense;
+
+        doc.rect(50, y, 495, 75).fill("#f1f5f9");
 
         doc.fillColor("#1e293b").font("Helvetica-Bold").fontSize(11);
+        doc.text("FINANCIAL SUMMARY", 65, y + 12);
 
-        doc.text("TOTAL:", 370, y + 10, {
-            width: 90,
-            align: "right",
-        });
-
-        doc.fillColor("#dc2626").text(
-            `${totalAmount.toLocaleString()}`,
-            colX.amount,
-            y + 10,
-            { width: colWidths.amount, align: "center" }
-        );
+        doc.fontSize(10);
+        doc.fillColor("#16a34a").text(`Total Income: ₹ ${totalIncome.toLocaleString()}`, 65, y + 35);
+        doc.fillColor("#dc2626").text(`Total Expense: ₹ ${totalExpense.toLocaleString()}`, 230, y + 35);
+        doc.fillColor(netBalance >= 0 ? "#16a34a" : "#dc2626").text(`Net Balance: ₹ ${netBalance.toLocaleString()}`, 400, y + 35);
 
         // ================= FOOTER =================
         const pages = doc.bufferedPageRange();
